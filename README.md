@@ -1,107 +1,109 @@
 # dsh-browser
 
-Windows 桌面容器：用 pywebview（WebView2/WinForms）内嵌 [@deepseek-ai/dsh](https://github.com/deepseek-ai/dsh) 的 Web UI，提供一个独立的 DeepSeek Harness 桌面应用。
+A Windows desktop container that embeds the [@deepseek-ai/dsh](https://github.com/deepseek-ai/dsh) web UI with pywebview (WebView2/WinForms), providing a standalone DeepSeek Harness desktop app.
 
-## 项目说明
+**English** | [中文](README.zh-CN.md)
 
-### 特性
+## Overview
 
-- 启动时自动寻找空闲端口，离线启动 `dsh web` 服务，就绪后在内嵌 WebView 中加载
-- 内置单实例互斥锁，重复启动自动退出
-- 关闭窗口即回收整个进程树，不留孤儿进程
-- 可离线运行：dsh 运行时随包分发（`node.exe` + `node_modules`），不依赖网络安装
-- 免安装部署：解压即用，或使用 Inno Setup 安装包
+### Features
 
-### 工作原理
+- Picks a free port on startup and launches `dsh web` offline, then loads the UI in an embedded WebView once ready
+- Single-instance mutex: launching a second instance exits immediately
+- Kills the whole process tree on window close — no orphan processes
+- Fully offline: the dsh runtime ships with the app (`node.exe` + `node_modules`), no network install required
+- Portable: extract and run, or use the Inno Setup installer
+
+### How it works
 
 ```
 ┌────────────────────────────────────────────┐
 │  dsh-browser.exe (Python/pywebview)        │
 │                                            │
-│  1. 找空闲端口                              │
-│  2. 启动 dsh web --port (子进程)            │
-│  3. 轮询 HTTP 200 就绪                      │
-│  4. WebView 加载 http://127.0.0.1:<port>    │
-│  5. 关窗 → taskkill 整个进程树              │
+│  1. Find a free port                       │
+│  2. Start dsh web --port (child process)   │
+│  3. Poll until HTTP 200 is ready           │
+│  4. WebView loads http://127.0.0.1:<port>  │
+│  5. On close -> taskkill whole tree        │
 └────────────────────────────────────────────┘
 ```
 
-dsh 运行时解析优先级（`main.py` `resolve_dsh_cmd`）：
+dsh runtime resolution order (`resolve_dsh_cmd` in `main.py`):
 
-1. 程序同级的 `node/` 目录（exe/脚本所在目录，含 `node.exe` 与 `node_modules/@deepseek-ai/dsh`）
-2. 环境变量 `DSH_BROWSER_NODE_DIR` 指向的目录
-3. PATH 上的 `npx -y @deepseek-ai/dsh`（需联网）
+1. `node/` directory next to the program (exe/script dir, containing `node.exe` and `node_modules/@deepseek-ai/dsh`)
+2. Directory pointed to by the `DSH_BROWSER_NODE_DIR` environment variable
+3. `npx -y @deepseek-ai/dsh` on PATH (requires network)
 
-### 目录结构
+### Directory layout
 
 ```
-main.py            应用入口（唯一源码文件）
-dsh-browser.spec   PyInstaller 打包配置
-installer.iss      Inno Setup 安装包脚本
-build.ps1          一键构建脚本（推荐入口）
-requirements.txt   Python 依赖
-version.txt        版本号单源
-bundle/node/       离线 node 运行时（node.exe + node_modules，构建时复制进产物）
+main.py            App entry point (the only source file)
+dsh-browser.spec   PyInstaller build config
+installer.iss      Inno Setup installer script
+build.ps1          One-click build script (recommended entry)
+requirements.txt   Python dependencies
+version.txt        Single source of truth for the version
+bundle/node/       Offline node runtime (node.exe + node_modules, copied into the build)
 ```
 
-## 环境要求
+## Requirements
 
-- Windows 10/11（64 位）
-- Python 3.13+（已验证 3.14.2）
-- 构建可选：Inno Setup 6（生成安装包时用）
-- 运行时：WebView2 运行时（Win10/11 通常自带）
+- Windows 10/11 (64-bit)
+- Python 3.13+ (verified on 3.14.2)
+- Optional for building: Inno Setup 6 (for the installer)
+- Runtime: WebView2 runtime (usually preinstalled on Win10/11)
 
-## 开发运行
+## Development
 
 ```powershell
 pip install -r requirements.txt
 python main.py
 ```
 
-## 编译打包步骤
+## Build & Package
 
-### 一键构建（推荐）
+### One-click build (recommended)
 
 ```powershell
-.\build.ps1            # 构建 dist\dsh-browser\
-.\build.ps1 -Installer # 构建并生成 installer\dsh-browser-setup.exe
-.\build.ps1 -InstallDeps  # 先自动安装 Python 依赖
-.\build.ps1 -Python py3.13 # 指定其他 Python 解释器
+.\build.ps1               # builds dist\dsh-browser\
+.\build.ps1 -Installer    # builds and produces installer\dsh-browser-setup.exe
+.\build.ps1 -InstallDeps  # installs Python deps first
+.\build.ps1 -Python py3.13 # use a specific Python executable
 ```
 
-脚本自动完成：
+The script automates:
 
-1. 杀掉残留的 dsh-browser 进程（防止 dist 内 DLL 被占用导致 PermissionError）
-2. 检查构建依赖（pywebview / pythonnet）
-3. `pyinstaller dsh-browser.spec` → `dist\dsh-browser\`（exe + `_internal\`）
-4. 复制 `bundle\node\*` → `dist\dsh-browser\node\`
-5. 校验 `node.exe` 与 `@deepseek-ai/dsh/lib/bin.js` 存在
-6. `-Installer` 时读取 `version.txt`，调用 iscc 打包 → `installer\dsh-browser-setup.exe`
+1. Kills leftover dsh-browser processes (avoids PermissionError from locked DLLs in dist)
+2. Checks build deps (pywebview / pythonnet)
+3. `pyinstaller dsh-browser.spec` -> `dist\dsh-browser\` (exe + `_internal\`)
+4. Copies `bundle\node\*` -> `dist\dsh-browser\node\`
+5. Verifies `node.exe` and `@deepseek-ai/dsh/lib/bin.js` exist
+6. With `-Installer`: reads `version.txt` and runs iscc -> `installer\dsh-browser-setup.exe`
 
-### 手动打包（了解细节时）
+### Manual packaging (for reference)
 
 ```powershell
 pyinstaller dsh-browser.spec
 Copy-Item bundle\node\* .\dist\dsh-browser\node\ -Recurse -Force
-# 可选：Inno Setup 打包
+# Optional: Inno Setup packaging
 & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss /DMyAppVersion=0.1.0
 ```
 
-注意：构建后必须复制 `bundle\node\*`，否则 exe 找不到 dsh 运行时。
+Note: you must copy `bundle\node\*` after building, otherwise the exe cannot find the dsh runtime.
 
-### 产物
+### Artifacts
 
-- `dist\dsh-browser\`：免安装目录（整个目录分发即可）
-- `installer\dsh-browser-setup.exe`：Inno Setup 安装包（含全部文件）
+- `dist\dsh-browser\`: portable directory (distribute the whole folder)
+- `installer\dsh-browser-setup.exe`: Inno Setup installer (contains everything)
 
-## 版本管理
+## Versioning
 
-版本号唯一来源为 `version.txt`，改版本只改这一个文件：
+`version.txt` is the single source of truth for the version — change only this file:
 
-- PyInstaller 构建时读取它生成 exe 文件版本资源
-- `build.ps1 -Installer` 通过 `iscc /DMyAppVersion=` 传给安装包脚本
+- PyInstaller reads it to stamp the exe file version resource
+- `build.ps1 -Installer` passes it to the installer via `iscc /DMyAppVersion=`
 
-## 常见问题
+## FAQ
 
-- **启动无反应/闪退**：确认 `node\` 目录随 exe 同目录分发，且包含 `node_modules\@deepseek-ai\dsh\lib\bin.js`；命令行方式运行 `python main.py` 可看到错误日志尾部。
-- **构建报 PermissionError**：说明 dist 目录里有 DLL 被占用（程序在运行或残留进程），`build.ps1` 会自动处理，手动打包时需先结束 dsh-browser 相关进程。
+- **App won't start / exits silently**: make sure `node\` ships next to the exe and contains `node_modules\@deepseek-ai\dsh\lib\bin.js`; run `python main.py` from a terminal to see the tail of the error log.
+- **Build fails with PermissionError**: a DLL in dist is locked (app running or leftover process). `build.ps1` handles this automatically; when packaging manually, end dsh-browser-related processes first.
