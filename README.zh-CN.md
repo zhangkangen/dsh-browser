@@ -1,6 +1,6 @@
 # dsh-browser
 
-Windows 桌面容器：用 pywebview（WebView2/WinForms）内嵌 [@deepseek-ai/dsh](https://github.com/deepseek-ai/dsh) 的 Web UI，提供一个独立的 DeepSeek Harness 桌面应用。
+Windows 桌面容器：用 pywebview（WebView2/WinForms）内嵌 [@deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) 的 Web UI，提供一个独立的 DeepSeek Harness 桌面应用。
 
 [English](README.md) | **中文**
 

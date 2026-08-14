@@ -1,6 +1,6 @@
 # dsh-browser
 
-A Windows desktop container that embeds the [@deepseek-ai/dsh](https://github.com/deepseek-ai/dsh) web UI with pywebview (WebView2/WinForms), providing a standalone DeepSeek Harness desktop app.
+A Windows desktop container that embeds the [@deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) web UI with pywebview (WebView2/WinForms), providing a standalone DeepSeek Harness desktop app.
 
 **English** | [中文](README.zh-CN.md)
 
