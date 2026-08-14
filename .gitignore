@@ -5,3 +5,4 @@ installer/
 __pycache__/
 *.pyc
 *.log
+AGENTS.md
