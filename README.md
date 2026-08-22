@@ -12,6 +12,7 @@ A Windows desktop container that embeds the [@deepseek-ai/deepseek-harness](http
 - Single-instance mutex: launching a second instance exits immediately
 - Kills the whole process tree on window close — no orphan processes
 - Fully offline: the dsh runtime ships with the app (`node.exe` + `node_modules`), no network install required
+- Self-updating runtime: checks npm on every launch for a newer dsh (max 3s) and installs it silently after you close the window — effective next launch; offline launches are never blocked
 - Portable: extract and run, or use the Inno Setup installer
 
 ### How it works
@@ -106,4 +107,5 @@ Note: you must copy `bundle\node\*` after building, otherwise the exe cannot fin
 ## FAQ
 
 - **App won't start / exits silently**: make sure `node\` ships next to the exe and contains `node_modules\@deepseek-ai\dsh\lib\bin.js`; run `python main.py` from a terminal to see the tail of the error log.
+- **How does auto-update work?** Every launch queries the npm registry for the latest dsh (3s timeout, silently skipped when offline). If a newer version exists, it is installed *after* you close the window (the bundled runtime has no npm, so a temporary npm is bootstrapped via `node.exe`; your own `.npmrc` mirror config is respected). The new version takes effect on next launch. On slow networks this can take tens of minutes; any failure rolls back automatically and never breaks the existing runtime. Installs are skipped silently if the app directory is read-only.
 - **Build fails with PermissionError**: a DLL in dist is locked (app running or leftover process). `build.ps1` handles this automatically; when packaging manually, end dsh-browser-related processes first.

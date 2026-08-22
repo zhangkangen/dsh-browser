@@ -12,6 +12,7 @@ Windows 桌面容器：用 pywebview（WebView2/WinForms）内嵌 [@deepseek-ai/
 - 内置单实例互斥锁，重复启动自动退出
 - 关闭窗口即回收整个进程树，不留孤儿进程
 - 可离线运行：dsh 运行时随包分发（`node.exe` + `node_modules`），不依赖网络安装
+- 运行时自更新：每次启动查一次 npm 是否有新版 dsh（最多等 3 秒），关窗后静默安装、下次启动生效；离线启动永不受阻
 - 免安装部署：解压即用，或使用 Inno Setup 安装包
 
 ### 工作原理
@@ -106,4 +107,5 @@ Copy-Item bundle\node\* .\dist\dsh-browser\node\ -Recurse -Force
 ## 常见问题
 
 - **启动无反应/闪退**：确认 `node\` 目录随 exe 同目录分发，且包含 `node_modules\@deepseek-ai\dsh\lib\bin.js`；命令行方式运行 `python main.py` 可看到错误日志尾部。
+- **自更新是怎么工作的？** 每次启动都会查一次 npm registry 上的最新 dsh（3 秒超时，离线时静默跳过）。发现新版后，在你关闭窗口*之后*才执行安装（捆绑包里没有 npm，会临时下载 npm 并用捆绑的 `node.exe` 引导；你自己的 `.npmrc` 镜像配置会被沿用）。新版本下次启动生效。慢网络下安装可能耗时几十分钟；任何失败都会自动回滚，绝不破坏现有运行时。程序目录只读（如装在 Program Files）时静默跳过更新。
 - **构建报 PermissionError**：说明 dist 目录里有 DLL 被占用（程序在运行或残留进程），`build.ps1` 会自动处理，手动打包时需先结束 dsh-browser 相关进程。
